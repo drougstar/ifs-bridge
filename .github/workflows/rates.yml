@@ -1,0 +1,30 @@
+# Copied into the published repository as .github/workflows/rates.yml by publish_website.py.
+# Fetches the Central Bank (TCMB) rates every day and commits them as rates/YYYY-MM-DD.json,
+# so the app has the rate for every line's date on any device.
+name: Update TCMB rates
+
+on:
+  schedule:
+    - cron: "40 13 * * 1-5"   # 16:40 Istanbul, after TCMB publishes at 15:30
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch missing days
+        run: python tools/build_rates.py
+      - name: Commit
+        run: |
+          git config user.name "rates-bot"
+          git config user.email "rates-bot@users.noreply.github.com"
+          git add rates
+          git diff --cached --quiet || git commit -m "Update TCMB rates"
+          git push
